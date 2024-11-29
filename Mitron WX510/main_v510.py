@@ -6,22 +6,27 @@ import random as rng
 import numpy as np
 import matplotlib.pyplot as plt
 import qFieldPotential as qFP
+from rk4 import rk4
 
 
 # SET-UP
+
+#Constants
+dalton2Kg = 1.6605 * (10**-27)
+
 # Physical Parameter Definition
 mass = 46
-frequency = 1.3 * 1000
+frequency = 1.3
 phaseSpeed = frequency * math.pi * 2
 print(phaseSpeed)
 potentialRatio = 0.95
-radioPotential = 50
-directPotential = radioPotential * potentialRatio
-quadLength = 150
-inscribedRadius = 6
+radioPotential = 25
+directPotential = 12.5 # radioPotential * potentialRatio
+quadLength = 150 / 1000
+inscribedRadius = 6 / 1000
 xSrcOffset = 0
 ySrcOffset = 0
-axialSpeed = 5
+axialSpeed = 5 / 1000
 initialPhase = 0
 charge = 1
 massRange = 1
@@ -29,21 +34,21 @@ spreadRange = 0.01
 velocitySpread = 0.05
 
 # Simulation Parameter Definition
-phaseStepPactor = 1
-phaseStep = phaseStepPactor * math.pi # Kinda redundant but at least I will be able to easily reference the precise value that I want
-timeStep = 2 * phaseStep / phaseSpeed # Still very redundant
+timeStep = 0.005 # Still very redundant
 print(timeStep)
-M = (frequency * quadLength) // (axialSpeed * phaseStepPactor)
+M = (quadLength / axialSpeed) / timeStep
 M = int(M)
+period = 0
 #M = (quadLength // axialSpeed) + 1
 
 # Pre-allocate Memory Space
-time = np.linspace(0, M * timeStep)
-print(time.shape)
 # use print(time) if you need to make sure that the pre-allocation is accurate
 
-iPos = np.array([rng.uniform(-spreadRange, spreadRange) + xSrcOffset, rng.uniform(-spreadRange, spreadRange)  + ySrcOffset, 0])
-iVel = np.array([rng.uniform(-velocitySpread, velocitySpread), rng.uniform(-velocitySpread, velocitySpread), axialSpeed]) # Another way by using the "constructor call"
+#iPos = np.array([rng.uniform(-spreadRange, spreadRange) + xSrcOffset, rng.uniform(-spreadRange, spreadRange)  + ySrcOffset, 0])
+#iVel = np.array([rng.uniform(-velocitySpread, velocitySpread), rng.uniform(-velocitySpread, velocitySpread), axialSpeed]) # Another way by using the "constructor call"
+
+iPos = np.array([0.0045, 0.0045, 0])
+iVel = np.array([0.001, 0.001, axialSpeed])
 iAcl = np.zeros([1, 3]) # One way of making arrays
 
 hstPos = np.zeros([M, 3])
@@ -59,10 +64,6 @@ print(iPos)
 print(iVel)
 print(iAcl)
 
-#print(hstPos)
-#print(hstVel)
-#print(hstAcl)
-
 
 # CALCULATIONS
 
@@ -70,12 +71,11 @@ print(iAcl)
 
 for i in range(M):
     #Loop Counting
+    period += timeStep
 
-    # Sum steps
-    iAcl = qFP.qFP(mass, charge, inscribedRadius, radioPotential, directPotential, time[i], phaseSpeed) * iPos
-    # use iAcl = np.array([ 1 , 2 , 0 ]) if you need to test the difference scheme
-    iVel = iVel + iAcl * timeStep
-    iPos = iPos + iVel * timeStep
+    # Solver Steps
+    iPos, iVel = rk4(timeStep, iPos, iVel, mass, charge, inscribedRadius, radioPotential, directPotential, period, phaseSpeed)
+
 
 
     # Annotate Coordinates
